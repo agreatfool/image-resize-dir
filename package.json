@@ -6,6 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+    "image-resize-dir": "./build/index.js"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/agreatfool/image-resize-dir.git"
@@ -20,10 +23,8 @@
     "commander": "2.17.1",
     "image-size": "0.6.3",
     "is-image": "2.0.0",
-    "mkdirp": "0.5.1",
     "mz": "2.7.0",
     "readdir-sorted": "2.0.3",
-    "rimraf": "2.6.2",
     "shelljs": "0.8.2"
   },
   "devDependencies": {

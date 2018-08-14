@@ -7,6 +7,7 @@ import * as program from 'commander';
 import * as isImage from 'is-image';
 import * as shell from 'shelljs';
 import * as readdirSorted from 'readdir-sorted';
+import * as sizeOf from 'image-size';
 
 const pkg = require('../package.json');
 
@@ -15,9 +16,9 @@ program.version(pkg.version)
     .option('-d, --source_dir <string>', 'source image files dir')
     .option('-o, --output_dir <dir>', 'output directory')
     .option('-w, --width <number>', 'resize image to this width', parseInt)
-    .option('-h, --height <number>', 'resize image to this height', parseInt)
-    .option('-iw, --ignore_width <number>', 'width under this value would be ignored', parseInt)
-    .option('-ih, --ignore_height <number>', 'height under this value would be ignored', parseInt)
+    .option('-H, --height <number>', 'resize image to this height', parseInt)
+    .option('-W, --ignore_width <number>', 'width under this value would be ignored', parseInt)
+    .option('-X, --ignore_height <number>', 'height under this value would be ignored', parseInt)
     .option('-l, --locale <string>', 'locale by which file list read from dir sorted, default is en, see https://www.npmjs.com/package/readdir-sorted')
     .parse(process.argv);
 
@@ -78,7 +79,79 @@ class ImageResizeDir {
             locale: ARGS_LOCALE,
             numeric: true
         });
-        let files = [];
+
+        let target = [];
+        let ignored = [];
+
+        for (const file of dirFiles) {
+            const fullPath = LibPath.join(ARGS_SOURCE_DIR, file);
+            if (await this._validateImageFile(fullPath) && this._validateDimension(fullPath)) {
+                target.push(file); // to be resized
+            } else {
+                ignored.push(file); // to be copied
+            }
+        }
+
+        for (const file of target) {
+            this._resizeImage(file);
+        }
+        for (const file of ignored) {
+            let source = LibPath.join(ARGS_SOURCE_DIR, file);
+            let dest = LibPath.join(ARGS_OUTPUT_DIR, file);
+            console.log(`Copy from ${source}, to ${dest}`);
+            await LibFs.copyFile(source, dest);
+        }
+    }
+
+    private _resizeImage(file: string) {
+        let command = '';
+
+        if (ARGS_WIDTH) {
+            command = `convert -resize ${ARGS_WIDTH}x ${LibPath.join(ARGS_SOURCE_DIR, file)} ${LibPath.join(ARGS_OUTPUT_DIR, file)}`;
+        } else if (ARGS_HEIGHT) {
+            command = `convert -resize x${ARGS_HEIGHT} ${LibPath.join(ARGS_SOURCE_DIR, file)} ${LibPath.join(ARGS_OUTPUT_DIR, file)}`;
+        } else if (ARGS_WIDTH && ARGS_HEIGHT) {
+            command = `convert -resize ${ARGS_WIDTH}x${ARGS_HEIGHT} ${LibPath.join(ARGS_SOURCE_DIR, file)} ${LibPath.join(ARGS_OUTPUT_DIR, file)}`;
+        }
+
+        console.log(`Resize images with command: ${command}`);
+
+        const code = shell.exec(command).code;
+
+        if (code !== 0) {
+            console.log(`Error in resizing images, code: ${code}`);
+            process.exit(code);
+        }
+    }
+
+    private async _validateImageFile(filePath: string) {
+        return (await LibFs.stat(filePath)).isFile() && isImage(filePath);
+    }
+
+    private _validateDimension(filePath: string) {
+        if (!ARGS_IGNORE_WIDTH && !ARGS_IGNORE_HEIGHT) {
+            return true; // no need to validate
+        }
+
+        let dimensions = sizeOf(filePath);
+        if (ARGS_IGNORE_WIDTH && dimensions.width < ARGS_IGNORE_WIDTH) {
+            return false;
+        }
+        if (ARGS_IGNORE_HEIGHT && dimensions.height < ARGS_IGNORE_HEIGHT) {
+            return false;
+        }
+
+        return true;
     }
 
 }
+
+new ImageResizeDir().run().then(_ => _).catch(_ => console.log(_));
+
+process.on('uncaughtException', (error) => {
+    console.error(`Process on uncaughtException error = ${error.stack}`);
+});
+
+process.on('unhandledRejection', (error) => {
+    console.error(`Process on unhandledRejection error = ${error.stack}`);
+});
