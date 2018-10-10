@@ -105,13 +105,13 @@ class ImageResizeDir {
     _resizeImage(file) {
         let command = '';
         if (ARGS_WIDTH) {
-            command = `convert -resize ${ARGS_WIDTH}x ${LibPath.join(ARGS_SOURCE_DIR, file)} ${LibPath.join(ARGS_OUTPUT_DIR, file)}`;
+            command = `convert -resize ${ARGS_WIDTH}x "${LibPath.join(ARGS_SOURCE_DIR, file)}" "${LibPath.join(ARGS_OUTPUT_DIR, file)}"`;
         }
         else if (ARGS_HEIGHT) {
-            command = `convert -resize x${ARGS_HEIGHT} ${LibPath.join(ARGS_SOURCE_DIR, file)} ${LibPath.join(ARGS_OUTPUT_DIR, file)}`;
+            command = `convert -resize x${ARGS_HEIGHT} "${LibPath.join(ARGS_SOURCE_DIR, file)}" "${LibPath.join(ARGS_OUTPUT_DIR, file)}"`;
         }
         else if (ARGS_WIDTH && ARGS_HEIGHT) {
-            command = `convert -resize ${ARGS_WIDTH}x${ARGS_HEIGHT} ${LibPath.join(ARGS_SOURCE_DIR, file)} ${LibPath.join(ARGS_OUTPUT_DIR, file)}`;
+            command = `convert -resize ${ARGS_WIDTH}x${ARGS_HEIGHT} "${LibPath.join(ARGS_SOURCE_DIR, file)}" "${LibPath.join(ARGS_OUTPUT_DIR, file)}"`;
         }
         console.log(`Resize images with command: ${command}`);
         const code = shell.exec(command).code;
